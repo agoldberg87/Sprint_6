@@ -1,9 +1,10 @@
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
 import random
+import allure
 
-class OrderPage:
+from .base_page import BasePage
+
+class OrderPage(BasePage):
     
     order_button_top = [By.XPATH, './/button[@class="Button_Button__ra12g" and text()="Заказать"]'] # Кнопка "Заказать" верх
     order_button_button = [By.XPATH, './/button[@class="Button_Button__ra12g Button_Middle__1CSJM" and text()="Заказать"]'] # Кнопка "Заказать" низ
@@ -35,6 +36,9 @@ class OrderPage:
     yandex_logo = [By.CLASS_NAME, 'Header_LogoYandex__3TSOI']
 
     accordion_headings = (By.CSS_SELECTOR, '[id^="accordion__heading-"]')
+
+    current_url = 'https://qa-scooter.praktikum-services.ru/'
+    yandex_url = 'dzen.ru'
     
     def get_accordion_heading(self, index):
         return [By.ID, 'accordion__heading-' + str(index)]
@@ -42,123 +46,137 @@ class OrderPage:
     def get_accordion_panel(self, index):
         return [By.ID, 'accordion__panel-' + str(index)]
     
-    def __init__(self, driver):
-        self.driver = driver
+    @allure.step('Кликнуть на заголовок FAQ')
+    def click_accordion_heading(self, index):
+        heading_element = self.find_element(self.get_accordion_heading(index))
+        self.scroll_to_element(heading_element)
+        self.execute_script('arguments[0].click()', heading_element)
+        self.wait_for_element_visible(self.get_accordion_panel(index))
     
+    def __init__(self, driver):
+        super().__init__(driver)
+    
+    @allure.step('Кликнуть на кнопку "Заказать"')
     def click_order_button(self):
         i = random.randint(1, 2)
         if i == 1:
-            self.driver.find_element(*self.order_button_top).click()
+            self.click_element(self.order_button_top)
         else:
-            self.driver.find_element(*self.order_button_button).click()
+            self.click_element(self.order_button_button)
     
+    @allure.step('Кликнуть на кнопку "Заказать" внизу формы')
     def click_order_button_bottom(self):
-        self.driver.find_element(*self.order_button_button).click()
+        self.click_element(self.order_button_button)
 
+    @allure.step('Кликнуть на кнопку "Далее"')
     def click_forward_button(self):
-        WebDriverWait(self.driver, 10).until(
-            expected_conditions.element_to_be_clickable(self.forward_button)
-        )
-        self.driver.find_element(*self.forward_button).click()
+        self.click_element(self.forward_button)
 
+    @allure.step('Кликнуть на кнопку "Да"')
     def click_confirmation_button(self):
-        WebDriverWait(self.driver, 10).until(
-            expected_conditions.element_to_be_clickable(self.confirmation_button)
-        )
-        self.driver.find_element(*self.confirmation_button).click()
+        self.click_element(self.confirmation_button)
 
+    @allure.step('Закрыть баннер про куки')
     def handle_cookie_banner(self):
         try:
             # Если баннер отображается, то клик
-            self.driver.find_element(By.CLASS_NAME, 'App_CookieButton__3cvqF').click()
+            self.click_element((By.CLASS_NAME, 'App_CookieButton__3cvqF'))
 
             # Убедиться, что баннер исчезает
-            WebDriverWait(self.driver, 10).until(
-                expected_conditions.invisibility_of_element_located(self.cookie_consent_banner)
-            )
+            self.wait_for_element_invisible(self.cookie_consent_banner)
         except:
             # Если баннер не отображается, то продолжить
             pass
 
     def wait_for_load_order_form_first_page(self):
-        WebDriverWait(self.driver, 10).until(expected_conditions.visibility_of_element_located(self.field_first_name))
+        self.wait_for_element_visible(self.field_first_name)
 
     def wait_for_load_order_form_second_page(self):
-        WebDriverWait(self.driver, 10).until(expected_conditions.visibility_of_element_located(self.field_delivery_date))
+        self.wait_for_element_visible(self.field_delivery_date)
 
     def wait_for_confirmation_button(self):
-        WebDriverWait(self.driver, 10).until(expected_conditions.element_to_be_clickable(self.confirmation_button))
+        self.wait_for_element_visible(self.confirmation_button)
 
     def wait_for_load_confirmation_header(self):
-        WebDriverWait(self.driver, 10).until(expected_conditions.visibility_of_element_located(self.confirmation_header))
+        self.wait_for_element_visible(self.confirmation_header)
 
+    @allure.step('Заполнить поле "Имя"')
     def set_first_name(self, first_name):
-        self.driver.find_element(*self.field_first_name).send_keys(first_name)
+        self.fill_field(self.field_first_name, first_name)
 
+    @allure.step('Заполнить поле "Фамилия"')
     def set_last_name(self, last_name):
-        self.driver.find_element(*self.field_last_name).send_keys(last_name)
+        self.fill_field(self.field_last_name, last_name)
 
+    @allure.step('Заполнить поле "Адрес"')
     def set_delivery_address(self, delivery_address):
-        self.driver.find_element(*self.field_delivery_address).send_keys(delivery_address)
+        self.fill_field(self.field_delivery_address, delivery_address)
 
-    def set_subway_station(self):  
-        self.driver.find_element(*self.dropdown_subway_station).click()
-        self.driver.find_elements(*self.field_subway_station_option)[random.randint(1, len(self.driver.find_elements(*self.field_subway_station_option)))].click()
+    @allure.step('Выбрать станцию метро')
+    def set_subway_station(self):
+        self.click_element(self.dropdown_subway_station)
+        options = self.find_elements(self.field_subway_station_option)
+        options[random.randint(0, len(options) - 1)].click()
 
-
+    @allure.step('Заполнить поле "Телефон"')
     def set_phone_number(self, phone_number):
-        self.driver.find_element(*self.field_phone_number).send_keys(phone_number)
+        self.fill_field(self.field_phone_number, phone_number)
 
+    @allure.step('Выбрать дату доставки')
     def set_delivery_date(self):
-        self.driver.find_element(*self.field_delivery_date).click()
+        self.click_element(self.field_delivery_date)
         i = random.randint(1, 2)
         if i == 1:
             for j in range(0, random.randint(1, 12)):
-                self.driver.find_element(*self.field_delivery_date_month_forward).click()
+                self.click_element(self.field_delivery_date_month_forward)
         else:
             for j in range(0, random.randint(1, 12)):
-                self.driver.find_element(*self.field_delivery_date_month_backward).click()
+                self.click_element(self.field_delivery_date_month_backward)
         
         week_number = random.randint(1, 5)
         day_number = random.randint(1, 7)
-        delivery_date = [By.XPATH, f'.//div[@class="react-datepicker__week"][{week_number}]/div[contains(@class, "react-datepicker__day")][{day_number}]']
-        self.driver.find_element(*delivery_date).click()
-        
+        delivery_date = (By.XPATH, f'.//div[@class="react-datepicker__week"][{week_number}]/div[contains(@class, "react-datepicker__day")][{day_number}]')
+        self.click_element(delivery_date)
 
+    @allure.step('Выбрать период аренды')
     def set_delivery_period(self):
-        self.driver.find_element(*self.dropdown_delivery_period).click()
-        self.driver.find_elements(*self.field_delivery_period)[random.randint(0, len(self.driver.find_elements(*self.field_delivery_period)) - 1)].click()
+        self.click_element(self.dropdown_delivery_period)
+        options = self.find_elements(self.field_delivery_period)
+        options[random.randint(0, len(options) - 1)].click()
 
+    @allure.step('Выбрать цвет')
     def set_color(self):
-        self.driver.find_elements(*self.field_color_checkbox)[random.randint(0, len(self.driver.find_elements(*self.field_color_checkbox)) - 1)].click()
+        options = self.find_elements(self.field_color_checkbox)
+        options[random.randint(0, len(options) - 1)].click()
 
+    @allure.step('Заполнить поле "Комментарий"')
     def set_comment(self, comment):
-        self.driver.find_element(*self.field_comment).send_keys(comment)
+        self.fill_field(self.field_comment, comment)
 
+    @allure.step('Нажать на кнопку "Продолжить"')
     def click_view_status_button(self):
-        self.driver.find_element(*self.view_status_button).click()
+        self.click_element(self.view_status_button)
 
+    @allure.step('Нажать на лого сервиса')
     def click_scooter_logo(self):
-        WebDriverWait(self.driver, 10).until(
-            expected_conditions.element_to_be_clickable(self.scooter_logo)
-        )
-        self.driver.find_element(*self.scooter_logo).click()
-        WebDriverWait(self.driver, 10).until(expected_conditions.url_to_be("https://qa-scooter.praktikum-services.ru/"))
+        self.click_element(self.scooter_logo)
+        self.wait_for_url_to_be("https://qa-scooter.praktikum-services.ru/")
 
+    @allure.step('Нажать на лого Яндекса')
     def click_yandex_logo(self):
-        original_window = self.driver.current_window_handle
+        original_window = self.get_current_window_handle()
         
-        self.driver.find_element(*self.yandex_logo).click()
+        self.click_element(self.yandex_logo)
         
-        WebDriverWait(self.driver, 5).until(expected_conditions.number_of_windows_to_be(2))
+        self.wait_for_number_of_windows(2, timeout=5)
         
         # Переход в новое окно
-        for window_handle in self.driver.window_handles:
+        for window_handle in self.get_window_handles():
             if window_handle != original_window:
-                self.driver.switch_to.window(window_handle)
+                self.switch_to_window(window_handle)
                 break
         
-        WebDriverWait(self.driver, 10).until(expected_conditions.url_contains('dzen.ru'))
+        self.wait_for_url_contains('dzen.ru')
 
     def set_order_form_first_page(self, first_name, last_name, delivery_address, phone_number):
         self.wait_for_load_order_form_first_page()
