@@ -1,0 +1,201 @@
+from selenium.webdriver.common.by import By
+import random
+import allure
+
+from .base_page import BasePage
+
+class OrderPage(BasePage):
+    
+    order_button_top = [By.XPATH, './/button[@class="Button_Button__ra12g" and text()="Заказать"]'] # Кнопка "Заказать" верх
+    order_button_button = [By.XPATH, './/button[@class="Button_Button__ra12g Button_Middle__1CSJM" and text()="Заказать"]'] # Кнопка "Заказать" низ
+    forward_button = [By.XPATH, './/button[text()="Далее"]'] # Кнопка "Далее"
+    confirmation_button = [By.XPATH, './/button[text()="Да"]'] # Кнопка "Да"
+    confirmation_header = [By.XPATH, './/div[@class="Order_ModalHeader__3FDaJ" and text()="Заказ оформлен"]']
+    cookie_consent_banner = [By.CLASS_NAME, 'App_CookieConsent__1yUIN'] # Cookie consent banner
+
+    field_first_name = [By.XPATH, './/input[@placeholder="* Имя"]']
+    field_last_name = [By.XPATH, './/input[@placeholder="* Фамилия"]']
+    field_delivery_address = [By.XPATH, './/input[@placeholder="* Адрес: куда привезти заказ"]']
+    dropdown_subway_station = [By.CLASS_NAME, 'select-search']
+
+    field_subway_station_option = [By.XPATH, './/li[@class="select-search__row"]']
+    
+    field_phone_number = [By.XPATH, './/input[@placeholder="* Телефон: на него позвонит курьер"]']
+    field_delivery_date = [By.XPATH, './/input[@placeholder="* Когда привезти самокат"]']
+    field_delivery_date_month_backward = [By.XPATH, './/button[@class="react-datepicker__navigation react-datepicker__navigation--previous"]']
+    field_delivery_date_month_forward = [By.XPATH, './/button[@class="react-datepicker__navigation react-datepicker__navigation--next"]']
+    
+    dropdown_delivery_period = [By.CLASS_NAME, 'Dropdown-root']
+    field_delivery_period = [By.CLASS_NAME, 'Dropdown-option']
+    field_color_checkbox = [By.CLASS_NAME, 'Checkbox_Label__3wxSf']
+    field_comment = [By.XPATH, './/input[@placeholder="Комментарий для курьера"]']
+
+    view_status_button = [By.XPATH, './/button[text()="Посмотреть статус"]']
+
+    scooter_logo = [By.CLASS_NAME, 'Header_LogoScooter__3lsAR']
+    yandex_logo = [By.CLASS_NAME, 'Header_LogoYandex__3TSOI']
+
+    accordion_headings = (By.CSS_SELECTOR, '[id^="accordion__heading-"]')
+
+    current_url = 'https://qa-scooter.praktikum-services.ru/'
+    yandex_url = 'dzen.ru'
+    
+    def get_accordion_heading(self, index):
+        return [By.ID, 'accordion__heading-' + str(index)]
+    
+    def get_accordion_panel(self, index):
+        return [By.ID, 'accordion__panel-' + str(index)]
+    
+    @allure.step('Кликнуть на заголовок FAQ')
+    def click_accordion_heading(self, index):
+        heading_element = self.find_element(self.get_accordion_heading(index))
+        self.scroll_to_element(heading_element)
+        self.execute_script('arguments[0].click()', heading_element)
+        self.wait_for_element_visible(self.get_accordion_panel(index))
+    
+    def __init__(self, driver):
+        super().__init__(driver)
+    
+    @allure.step('Кликнуть на кнопку "Заказать"')
+    def click_order_button(self):
+        i = random.randint(1, 2)
+        if i == 1:
+            self.click_element(self.order_button_top)
+        else:
+            self.click_element(self.order_button_button)
+    
+    @allure.step('Кликнуть на кнопку "Заказать" внизу формы')
+    def click_order_button_bottom(self):
+        self.click_element(self.order_button_button)
+
+    @allure.step('Кликнуть на кнопку "Далее"')
+    def click_forward_button(self):
+        self.click_element(self.forward_button)
+
+    @allure.step('Кликнуть на кнопку "Да"')
+    def click_confirmation_button(self):
+        self.click_element(self.confirmation_button)
+
+    @allure.step('Закрыть баннер про куки')
+    def handle_cookie_banner(self):
+        try:
+            # Если баннер отображается, то клик
+            self.click_element((By.CLASS_NAME, 'App_CookieButton__3cvqF'))
+
+            # Убедиться, что баннер исчезает
+            self.wait_for_element_invisible(self.cookie_consent_banner)
+        except:
+            # Если баннер не отображается, то продолжить
+            pass
+
+    def wait_for_load_order_form_first_page(self):
+        self.wait_for_element_visible(self.field_first_name)
+
+    def wait_for_load_order_form_second_page(self):
+        self.wait_for_element_visible(self.field_delivery_date)
+
+    def wait_for_confirmation_button(self):
+        self.wait_for_element_visible(self.confirmation_button)
+
+    def wait_for_load_confirmation_header(self):
+        self.wait_for_element_visible(self.confirmation_header)
+
+    @allure.step('Заполнить поле "Имя"')
+    def set_first_name(self, first_name):
+        self.fill_field(self.field_first_name, first_name)
+
+    @allure.step('Заполнить поле "Фамилия"')
+    def set_last_name(self, last_name):
+        self.fill_field(self.field_last_name, last_name)
+
+    @allure.step('Заполнить поле "Адрес"')
+    def set_delivery_address(self, delivery_address):
+        self.fill_field(self.field_delivery_address, delivery_address)
+
+    @allure.step('Выбрать станцию метро')
+    def set_subway_station(self):
+        self.click_element(self.dropdown_subway_station)
+        options = self.find_elements(self.field_subway_station_option)
+        options[random.randint(0, len(options) - 1)].click()
+
+    @allure.step('Заполнить поле "Телефон"')
+    def set_phone_number(self, phone_number):
+        self.fill_field(self.field_phone_number, phone_number)
+
+    @allure.step('Выбрать дату доставки')
+    def set_delivery_date(self):
+        self.click_element(self.field_delivery_date)
+        i = random.randint(1, 2)
+        if i == 1:
+            for j in range(0, random.randint(1, 12)):
+                self.click_element(self.field_delivery_date_month_forward)
+        else:
+            for j in range(0, random.randint(1, 12)):
+                self.click_element(self.field_delivery_date_month_backward)
+        
+        week_number = random.randint(1, 5)
+        day_number = random.randint(1, 7)
+        delivery_date = (By.XPATH, f'.//div[@class="react-datepicker__week"][{week_number}]/div[contains(@class, "react-datepicker__day")][{day_number}]')
+        self.click_element(delivery_date)
+
+    @allure.step('Выбрать период аренды')
+    def set_delivery_period(self):
+        self.click_element(self.dropdown_delivery_period)
+        options = self.find_elements(self.field_delivery_period)
+        options[random.randint(0, len(options) - 1)].click()
+
+    @allure.step('Выбрать цвет')
+    def set_color(self):
+        options = self.find_elements(self.field_color_checkbox)
+        options[random.randint(0, len(options) - 1)].click()
+
+    @allure.step('Заполнить поле "Комментарий"')
+    def set_comment(self, comment):
+        self.fill_field(self.field_comment, comment)
+
+    @allure.step('Нажать на кнопку "Продолжить"')
+    def click_view_status_button(self):
+        self.click_element(self.view_status_button)
+
+    @allure.step('Нажать на лого сервиса')
+    def click_scooter_logo(self):
+        self.click_element(self.scooter_logo)
+        self.wait_for_url_to_be("https://qa-scooter.praktikum-services.ru/")
+
+    @allure.step('Нажать на лого Яндекса')
+    def click_yandex_logo(self):
+        original_window = self.get_current_window_handle()
+        
+        self.click_element(self.yandex_logo)
+        
+        self.wait_for_number_of_windows(2, timeout=5)
+        
+        # Переход в новое окно
+        for window_handle in self.get_window_handles():
+            if window_handle != original_window:
+                self.switch_to_window(window_handle)
+                break
+        
+        self.wait_for_url_contains('dzen.ru')
+
+    def set_order_form_first_page(self, first_name, last_name, delivery_address, phone_number):
+        self.wait_for_load_order_form_first_page()
+        self.set_first_name(first_name)
+        self.set_last_name(last_name)
+        self.set_delivery_address(delivery_address)
+        self.set_subway_station()
+        self.set_phone_number(phone_number)
+        self.click_forward_button()
+    
+        
+    def set_order_form_second_page(self, comment):
+        self.wait_for_load_order_form_second_page()
+        self.set_delivery_date()
+        self.set_delivery_period()
+        self.set_color()
+        self.set_comment(comment)
+        self.click_order_button_bottom()
+        self.wait_for_confirmation_button()  
+        self.click_confirmation_button()
+
+
